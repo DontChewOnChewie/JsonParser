@@ -1,0 +1,690 @@
+#: import main main
+#: import ListAdapter kivy.adapters.listadapter.ListAdapter
+#: import ListItemButton kivy.uix.listview.ListItemButton
+
+#
+# There are no comments in this file due to the kv langauge being  
+# mainly a structure language. There are on on_press and on_text_validate
+# function calls to the main python program as well as 3 key words user:
+# app : Refers to the main Class in main.py, in this case JsonParserApp.
+# root : Refers to the left most object within <> and thus links back to
+#		 the same class in main.py.
+# app.root : Refers to the MyManager class as this is the root widget of the app.
+#
+# Syntax such as <BtnStandard@Button> refers to styles applied to a button. The 
+# BtnStandard tag can then be used on it's own, reducing total number of lines.
+#
+# In terms of the actual structure, anything tabbed in is a child widget/property
+# of the inner tabbed object, so layouts within layouts etc.
+#
+
+# Root Widget
+MyManager:
+	canvas.before:
+		Color:
+			rgba: 0.96, 0.95, 0.73, 1
+		Rectangle:
+			pos: self.pos
+			size: self.size
+    StartScreen:
+    MainScreen:
+	WordSearchScreen:
+	RegexSearchScreen:
+	UserSearchScreen:
+
+# Standard Button Style
+<BtnStandard@Button>:
+	background_color: (0.25, 0.55, 0.85, 1)
+
+# Standard Label Style
+<LblStandard@Label>:
+	color: (0.25, 0.55, 0.85, 1)
+
+# Standard TextInput Style
+<TxtInputStandard@TextInput>:
+	background_color: (0.96, 0.95, 0.73, 1)
+	foreground_color: (0.25, 0.55, 0.85, 1)
+	hint_text_color: (0.25, 0.55, 0.85, 1)
+
+# Style for inputs on start screen.	
+<InputField@BoxLayout>:
+	spacing: 5
+	TxtInputStandard:
+		size_hint_y: 0.6
+		multiline: False
+	BtnStandard:
+		text: 'Browse'
+		size_hint: 0.2, 0.6
+		on_press:
+			root.parent.parent.parent.open_file_dialog(self)
+
+# Style and formatting of navigation bar.
+<NavBar@ActionBar>:
+	background_image: 'images/white.png'
+	background_color: (0.96, 0.95, 0.73, 1)
+	canvas.before:
+		Color: 
+			rgb: 0.25, 0.55, 0.85 
+		Line:
+			width: 2
+			points: 0, self.y, self.width, self.y
+	ActionView:
+		use_seperator: True
+		ActionPrevious:
+			title: 'Json Parser'
+			color: (0.25, 0.55, 0.85, 1)
+			with_previous: False
+			app_icon: 'images/logo.png'
+			on_press:
+				app.root.current = 'start_screen'
+		ActionOverflow:
+			background_image: 'images/white.png'
+			background_color: (0.96, 0.95, 0.73, 1)
+		ActionButton:
+			text: 'Home'
+			color: (0.25, 0.55, 0.85, 1)
+			on_press:
+				app.root.current = 'main_screen'
+				app.parser.results = []
+		ActionButton:
+			text: 'Templates'
+			color: (0.25, 0.55, 0.85, 1)
+			on_press:
+				app.root.open_template_editor()
+		ActionButton:
+			text: 'Word Search'
+			color: (0.25, 0.55, 0.85, 1)
+			on_press:
+				app.root.current = 'word_search_screen'
+				app.parser.results = []
+		ActionButton:
+			text: 'Regex Search'
+			color: (0.25, 0.55, 0.85, 1)
+			on_press:
+				app.root.current = 'regex_search_screen'
+				app.parser.results = []
+		ActionButton:
+			text: 'User Search'
+			color: (0.25, 0.55, 0.85, 1)
+			on_press:
+				app.root.current = 'user_search_screen'
+				app.parser.results = []
+
+# Style of TemplateButton.
+<TemplateButton>:
+	deselected_color: (0.93, 0.42, 0.35, 1)
+	selected_color: (0, 0.69, 0.3, 1)
+
+# Formatting and styling of Template/File browser.
+<TemplateBrowser>:
+	auto_dismiss: False
+	title: 'Choose a Template'
+	seperator_color: (0.25, 0.55, 0.85, 1)
+	size_hint: 0.9, 0.9
+	BoxLayout:	
+		orientation: 'vertical'
+		FileChooserListView:
+			id: chooser	
+			size_hint_y: 1.5
+		BoxLayout:
+			BtnStandard:
+				text: 'Cancel'
+				size_hint: 0.2, 0.1
+				on_press:
+					root.dismiss()
+			BtnStandard:
+				text: 'Use Template'
+				size_hint: 0.8, 0.1
+				on_press:
+					root.set_field(chooser.selection)
+					root.dismiss()
+
+# Formatting and styling of confirming file delete.
+<ConfirmationPopup>:
+	auto_dismiss: False
+	size_hint: 0.5, 0.2
+	title: ''
+	title_color: (0.25, 0.55, 0.85, 1)
+	background: 'images/background-col.png'
+	BoxLayout:
+		BtnStandard:
+			text: 'Yes'
+			on_press:
+				root.delete_file()
+				root.dismiss()
+		BtnStandard:
+			text: 'No'
+			on_press:
+				root.dismiss()
+
+# Formatting and styling of file editor.
+<FileEditorPopup>:
+	auto_dismiss: False
+	title: 'File Editor'
+	title_color: (0.25, 0.55, 0.85, 1)
+	size_hint: 0.95, 0.95
+	background: 'images/background-col.png'
+	file_name_input: file_name_input
+	file_contents: file_contents
+	BoxLayout:
+		orientation: 'vertical'
+		BoxLayout:
+			size_hint_y: 0.06
+			LblStandard:
+				text: 'File Name (Excluding Extension):'
+				size_hint_x: 0.3
+			TxtInputStandard:
+				id: file_name_input
+				multiline: False
+				allow_copy: False
+				size_hint_x: 0.7
+				on_text_validate:
+					root.check_file_validty(self.text)
+		TxtInputStandard:
+			size_hint_y: 0.89
+			allow_copy: False
+			id: file_contents
+		BoxLayout:
+			size_hint_y: 0.05
+			BtnStandard:
+				text: 'Exit'
+				size_hint_x: 0.1
+				on_press:
+					root.dismiss()
+			BtnStandard:
+				text: 'View Example Record'
+				size_hint_x: 0.45
+				on_press:
+					root.show_example()
+			BtnStandard:
+				text: 'Save'
+				size_hint_x: 0.45
+				on_press:
+					root.save_changes()
+
+# Formatting and styling of code example window.
+<ExamplePopup>:
+	example_box: example_box
+	auto_dismiss: False
+	size_hint: 0.8, 0.8
+	title_color: (0.25, 0.55, 0.85, 1)
+	background: 'images/background-col.png'
+	BoxLayout:
+		orientation: 'vertical'
+		TxtInputStandard:
+			id:example_box
+			size_hint_y: 0.95
+		BtnStandard:
+			text: 'Exit'
+			size_hint_y: 0.05
+			on_press:
+				root.dismiss()
+
+# Formatting and styling of map warning.
+<MarkerPopup>:
+	auto_dismiss: False
+	background: 'images/background-col.png'
+	size_hint: 0.5, 0.2
+	title: 'Too many markers may been added to the map ' + str(len(app.parser.results)) + '! You may want to refine your search. Continue?'
+	title_color: (0.25, 0.55, 0.85, 1)
+	BoxLayout:
+		BtnStandard:
+			text: 'Yes'
+			on_press:
+				root.open_map()
+				root.dismiss()
+		BtnStandard:
+			text: 'No'
+			on_press:
+				root.dismiss()
+
+# Formatting and styling of template editor.
+<TemplateEditorPopup>:
+	auto_dismiss: True
+	size_hint: 0.8, 0.3
+	background: 'images/background-col.png'
+	file_path: file_path
+	title: "Create, Edit and Delete Templates (.tmpl)"
+	title_color: (0.25, 0.55, 0.85, 1)
+	BoxLayout:
+		spacing: 8
+		orientation: 'vertical'
+		TxtInputStandard:
+			id: file_path
+			hint_text: 'File Name'
+		BoxLayout:
+			BtnStandard:
+				text: 'Browse'
+				on_press:
+					root.open_file_dialog()
+			BtnStandard:
+				text: 'Edit'
+				on_press:
+					root.open_file_editor("Edit")
+			BtnStandard:
+				text: 'Delete'
+				on_press:
+					root.open_confirm()
+		BtnStandard:
+			text: 'Create New Template'
+			on_press:
+				root.open_file_editor("Create")
+
+# Formatting and styling of graphs window.				
+<GraphPopup>:
+	auto_dismiss: False
+	background: 'images/background-col.png'
+	title_color: (0.25, 0.55, 0.85, 1)
+	title_align: 'center'
+	add_to: add_to
+	BoxLayout:
+		id: add_to
+		orientation: 'vertical'
+		BoxLayout:
+			size_hint_y: 0.1
+			BtnStandard:
+				text: '<'
+				size_hint_x: 0.2
+				on_press:
+					root.change_graph(-1)
+			BtnStandard:
+				text: 'Close'
+				size_hint_x: 0.6
+				on_press:
+					root.dismiss()
+			BtnStandard:
+				text: '>'
+				size_hint_x: 0.2
+				on_press:
+					root.change_graph(1)
+
+# Formatting and styling of map type choice.
+<MapPopup>:
+	background: 'images/background-col.png'
+	title_color: (0.25, 0.55, 0.85, 1)
+	title: "What time of map do you want to see?"
+	size_hint: 0.4, 0.2
+	BoxLayout:
+		BtnStandard:
+			text: 'Marker'
+			on_press:
+				root.open_map("Marker")
+				root.dismiss()
+		BtnStandard:
+			text: 'Heat Map'
+			on_press:
+				root.open_map("Heat")
+				root.dismiss()
+					
+# Formatting and styling of start screen.	
+<StartScreen>:
+    name: 'start_screen'
+	inputs: inputs
+	status_label: status_label
+	view_data_btn: view_data_btn
+	BoxLayout:
+		orientation: 'vertical'
+		padding: 10
+		Image:
+			source: 'images/logo.png'
+		GridLayout:
+			cols: 1
+			rows: 4
+			padding: 40,0,40,0
+			id: inputs
+			InputField:
+			InputField:
+			InputField:
+			LblStandard:
+				id: status_label
+				text: 'Status Label'
+		BoxLayout:
+			BtnStandard:
+				text: 'Parse Data'
+				size_hint: 0.9, 0.2
+				on_press:
+					root.get_files()
+			BtnStandard:
+				id: view_data_btn
+				active: False
+				text: 'X'
+				size_hint: 0.1, 0.2
+				background_color: (0.93, 0.42, 0.35, 1)
+				on_press:
+					root.view_parsed_data()
+	
+
+# Formatting and styling of the main screen.
+<MainScreen>:
+    name: 'main_screen'
+	display:display
+	BoxLayout:
+		orientation: 'vertical'
+		NavBar:
+		TxtInputStandard:
+			id: display
+		BoxLayout:
+			size_hint_y: 0.2
+			BtnStandard:
+				text: 'Show Docs'
+				size_hint: 0.4, 0.3
+				on_press:
+					root.show_docs()	
+			BtnStandard:
+				text: 'Get Records'
+				size_hint: 0.4, 0.3
+				on_press:
+					app.parser.results = app.parser.parsed_files
+					root.show_record(0)	
+			BtnStandard:
+				text: '<'
+				size_hint: 0.1, 0.3
+				on_press:
+					root.show_record(-1)
+			BtnStandard:
+				text: '>'
+				size_hint: 0.1, 0.3
+				on_press:
+					root.show_record(1)
+
+# Formatting and styling of word search and key word search screen.
+<WordSearchScreen>:
+	name: 'word_search_screen'
+	template_path: template_path
+	record_display: record_display
+	template_list: template_list
+	
+	BoxLayout:
+		orientation: 'vertical'
+		NavBar:
+		BoxLayout:
+			BoxLayout:
+				orientation: 'vertical'
+				BoxLayout:	
+					padding: 0, 0, 0, 40
+					orientation: 'vertical'
+					size_hint_x: 0.8
+					BoxLayout:
+						TxtInputStandard:
+							id: simple_word_input
+							multiline: False
+							hint_text: 'Searh for Word'
+							size_hint: 0.7, 0.25
+							on_text_validate:
+								root.check_search(simple_word_input.text, "Simple")
+						BtnStandard:
+							text: '->'
+							size_hint: 0.3, 0.25
+							on_press:
+								root.check_search(simple_word_input.text, "Simple")
+					LblStandard:
+						text: 'Word Template Seach'
+						size_hint_y: 0.2
+					ListView:
+						id: template_list
+						size_hint_y: 1.5
+						adapter:
+							ListAdapter(data=app.parser.get_key_word_template_values(), cls=main.TemplateButton)
+					BtnStandard:
+						text: 'Search Template'
+						size_hint_y: 0.2
+						on_press:
+							root.check_search("", "Template")
+					BoxLayout:
+						orientation: 'vertical'
+						padding: 0, 10, 0, 0
+						BtnStandard:
+							text: 'Add New Template'
+							size_hint_y: 0.03
+							on_press:
+								root.template_editor("Create")
+						BtnStandard:
+							text: 'Edit Template'
+							size_hint_y: 0.03
+							on_press:
+								root.template_editor("Edit")
+						BtnStandard:
+							text: 'Delete Template'
+							size_hint_y: 0.03
+							on_press:
+								root.delete_template()
+							
+			BoxLayout:
+				orientation: 'vertical'
+				# Template Choice
+				BoxLayout:
+					size_hint_y: 0.1
+					TxtInputStandard:
+						id: template_path
+						size_hint: 0.8, 0.6
+						hint_text: 'Template Path'
+						text: 'templates/included/basic.tmpl'
+						multiline: False
+					BtnStandard:
+						text: 'Browse'
+						size_hint: 0.2, 0.6
+						on_press:
+							root.open_file_dialog()
+				BoxLayout:
+					size_hint_y: 0.8
+					TxtInputStandard:
+						id: record_display
+				BoxLayout:
+					size_hint_y: 0.1
+					BtnStandard:
+						text: '<'
+						size_hint: 0.1, 0.6
+						on_press:
+							root.show_new_record(-1)
+					BtnStandard:
+						text: 'Show Map'
+						size_hint: 0.4,  0.6
+						on_press:
+							root.show_mapped_data()
+					BtnStandard:
+						text: 'Graphs'
+						size_hint: 0.4, 0.6
+						on_press:
+							root.open_graphs()
+					BtnStandard:
+						text: '>'
+						size_hint: 0.1, 0.6
+						on_press:
+							root.show_new_record(1)
+
+# Formatting and styling of regular expression screen.
+<RegexSearchScreen>:
+	name: 'regex_search_screen'
+	template_path: template_path
+	record_display: record_display
+	template_list: template_list
+	
+	BoxLayout:
+		orientation: 'vertical'
+		NavBar:
+		BoxLayout:
+			BoxLayout:
+				orientation: 'vertical'
+				BoxLayout:	
+					padding: 0, 0, 0, 40
+					orientation: 'vertical'
+					size_hint_x: 0.8
+					BoxLayout:
+						TxtInputStandard:
+							id: simple_regex_input
+							multiline: False
+							hint_text: 'Enter Expression'
+							size_hint: 0.7, 0.25
+							on_text_validate:
+								root.check_search(simple_regex_input.text, "Simple")
+						BtnStandard:
+							text: '->'
+							size_hint: 0.3, 0.25
+							on_press:
+								root.check_search(simple_regex_input.text, "Simple")
+					LblStandard:
+						text: 'Expression Files'
+						size_hint_y: 0.2
+					ListView:
+						id: template_list
+						size_hint_y: 1.5
+						adapter:
+							ListAdapter(data=app.parser.get_expression_files(), cls=main.TemplateButton)
+					BtnStandard:
+						text: 'Search Expression'
+						size_hint_y: 0.2
+						on_press:
+							root.check_search("", "Template")
+					BoxLayout:
+						orientation: 'vertical'
+						padding: 0, 10, 0, 0
+						BtnStandard:
+							text: 'Add New Expression'
+							size_hint_y: 0.1
+							on_press:
+								root.template_editor("Create")
+						BtnStandard:
+							text: 'Edit Expression'
+							size_hint_y: 0.1
+							on_press:
+								root.template_editor("Edit")
+						BtnStandard:
+							text: 'Delete Expression'
+							size_hint_y: 0.1
+							on_press:
+								root.delete_template()
+							
+			BoxLayout:
+				orientation: 'vertical'
+				# Template Choice
+				BoxLayout:
+					size_hint_y: 0.1
+					TxtInputStandard:
+						id: template_path
+						size_hint: 0.8, 0.6
+						hint_text: 'Template Path'
+						text: 'templates/included/basic.tmpl'
+						multiline: False
+					BtnStandard:
+						text: 'Browse'
+						size_hint: 0.2, 0.6
+						on_press:
+							root.open_file_dialog()
+				BoxLayout:
+					size_hint_y: 0.8
+					TxtInputStandard:
+						id: record_display
+						readonly: True
+						allow_copy: False
+				BoxLayout:
+					size_hint_y: 0.1
+					BtnStandard:
+						text: '<'
+						size_hint: 0.1, 0.6
+						on_press:
+							root.show_new_record(-1)
+					BtnStandard:
+						text: 'Show Map'
+						size_hint: 0.4, 0.6
+						on_press:
+							root.show_mapped_data()
+					BtnStandard:
+						text: 'Graphs'
+						size_hint: 0.4, 0.6
+						on_press:
+							root.open_graphs()
+					BtnStandard:
+						text: '>'
+						size_hint: 0.1, 0.6
+						on_press:
+							root.show_new_record(1)
+
+# Formatting and styling of user search screen.
+<UserSearchScreen>:
+	name: 'user_search_screen'
+	username_input: username_input
+	user_list: user_list
+	template_path: template_path
+	record_display: record_display
+	
+	BoxLayout:
+		orientation: 'vertical'
+		NavBar:
+		BoxLayout:
+			BoxLayout:
+				orientation: 'vertical'
+				BoxLayout:	
+					padding: 0, 0, 0, 40
+					orientation: 'vertical'
+					size_hint_x: 0.8
+					BoxLayout:
+						TxtInputStandard:
+							id: username_input
+							multiline: False
+							hint_text: 'Enter Username'
+							size_hint: 0.7, 0.2
+							on_text_validate:
+								user_list.adapter.data = app.parser.get_users(username_input.text)
+						BtnStandard:
+							text: '->'
+							size_hint: 0.3, 0.2
+							on_press:
+								user_list.adapter.data = app.parser.get_users(username_input.text)
+					LblStandard:
+						text: 'Users'
+						size_hint_y: 0.2
+					ListView:
+						id: user_list
+						size_hint_y: 1.5
+						adapter:
+							ListAdapter(data=[], cls=main.TemplateButton)
+					BtnStandard:
+						text: 'Get User Data'
+						size_hint_y: 0.2
+						on_press:
+							root.get_user_info(user_list.adapter.selection)
+			BoxLayout:
+				orientation: 'vertical'
+				# Template Choice
+				BoxLayout:
+					size_hint_y: 0.1
+					TxtInputStandard:
+						id: template_path
+						size_hint: 0.8, 0.6
+						hint_text: 'Template Path'
+						text: 'templates/included/basic.tmpl'
+						multiline: False
+					BtnStandard:
+						text: 'Browse'
+						size_hint: 0.2, 0.6
+						on_press:
+							root.open_file_dialog()
+				BoxLayout:
+					size_hint_y: 0.8
+					TxtInputStandard:
+						id: record_display
+						readonly: True
+						allow_copy: False
+				BoxLayout:
+					size_hint_y: 0.1
+					BtnStandard:
+						text: '<'
+						size_hint: 0.1, 0.6
+						on_press:
+							root.show_new_record(-1)
+					BtnStandard:
+						text: 'Show Map'
+						size_hint: 0.4, 0.6
+						on_press:
+							root.show_mapped_data()
+					BtnStandard:
+						text: 'Graphs'
+						size_hint: 0.4, 0.6
+						on_press:
+							root.open_graphs()
+					BtnStandard:
+						text: '>'
+						size_hint: 0.1, 0.6
+						on_press:
+							root.show_new_record(1)
+    
